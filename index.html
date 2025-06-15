@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        CRUD Operation with Google Sheet
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="card shadow p-5 mt-5">
+
+                    <form id="form" method="post">
+
+                        <label for="customer_name">
+                            Customer Name
+                        </label>
+                        <input type="text" name="Customer" id="customer_name" class="form-control">
+                        <label for="customer_phno">
+                            Phone Number
+                        </label>
+                        <input type="text" name="Phone" id="customer_phno" class="form-control">
+                        <label for="customer_addr">
+                            Customer Address
+                        </label>
+                        <input type="text" name="Address" id="customer_addr" class="form-control">
+                        <label for="price">
+                            Price
+                        </label>
+                        <input type="text" name="Price" id="price" class="form-control">
+
+                        <button type="submit" id="submit-btn" class="btn btn-primary w-100 mt-3">
+                            Submit
+                        </button>
+
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+
+                <div class="mt-5">
+                    <input id="myInput" type="text" placeholder="Search Here.." class="form-control">
+
+                    <table class="table table-bordered mt-1" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Price</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myTable"></tbody>
+                    </table>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+
+<script>
+    // https://script.google.com/macros/s/AKfycbzJH02w4nKHfcSZTXB3q91FcmYA1w_9DqeJHKK0o8U/dev?header=Customer
+    // const url = "https://script.google.com/macros/s/AKfycbzJH02w4nKHfcSZTXB3q91FcmYA1w_9DqeJHKK0o8U/dev"
+    // const url = "https://script.google.com/macros/s/AKfycbzrQRjXB5X7FmgFnG8oj76xluMQ-JYVztbyV8w-Kj6oXhKZsTMX6oN2TEO58udDcQM-/exec"
+    // const url = "https://script.google.com/macros/s/AKfycbx6NMVrM15d4LyJ2gOL_0iSCj64Gjjs3r0H9zCNIXKw2oZtPcfFyh-Ado814FVMUm49/exec"
+    // const url = "https://script.google.com/macros/s/AKfycbxla-SbrGE-8QjGN6Okf5G9ry8cmawyKMHXEbMTaicpnGh-wVsuEodOu_0o52EwKhxQ/exec"
+    // const url = "https://script.google.com/macros/s/AKfycbx6skDVcn5y9MmPIzRtAXikoKVRSHXoBiGAlJ6MvxfEL4bBtedZyRuEmWSPqpFdgZc/exec"
+    const url = "https://script.google.com/macros/s/AKfycbyJ2CUUVKlMaOZqYVPlNZYw8kUGfm8LLyrxznEV9T8rCXIwyfn2BxaGLylNTMq-etNH/exec"
+
+    document.getElementById('form').action = url;
+
+    let editRowNumber = null;
+
+    // Load table data
+    function loadData() {
+        fetch(url)
+            .then(res => res.json())
+            .then(res => {
+                if (res.result === "success") {
+                    const tbody = document.querySelector("#data-table tbody");
+                    tbody.innerHTML = "";
+                    res.data.forEach((item, index) => {
+                        const rowNumber = index + 2; // considering 1st row is header
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td>${item.Customer}</td>
+                            <td>${item.Phone}</td>
+                            <td>${item.Address}</td>
+                            <td>${item.Price}</td>
+                            <td>${new Date(item.Date).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="editRow(${rowNumber}, '${item.Customer}', '${item.Phone}', '${item.Address}', '${item.Price}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRow(${rowNumber})">Delete</button>
+                            </td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                }
+            });
+    }
+
+    // Fill form for editing
+    function editRow(row, customer, phone, address, price) {
+        document.getElementById('customer_name').value = customer;
+        document.getElementById('customer_phno').value = phone;
+        document.getElementById('customer_addr').value = address;
+        document.getElementById('price').value = price;
+
+        editRowNumber = row;
+
+        const submitBtn = document.querySelector('#form button');
+        submitBtn.textContent = "Update";
+        submitBtn.classList.remove("btn-primary");
+        submitBtn.classList.add("btn-success");
+    }
+
+    // Handle insert/update submit
+    document.getElementById("form").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const submitBtn = document.getElementById("submit-btn");
+
+        // Store original state
+        const originalBtnContent = submitBtn.innerHTML;
+
+        // Show spinner
+        submitBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <span role="status">Loading...</span>
+    `;
+        submitBtn.disabled = true;
+
+        if (editRowNumber) {
+            formData.append("action", "update");
+            formData.append("row", editRowNumber);
+        }
+
+        fetch(url, {
+            method: "POST",
+            body: formData
+        })
+            .then(res => res.json())
+            .then(res => {
+                if (res.result === "success") {
+                    alert(editRowNumber ? "Data updated successfully!" : "Data added successfully!");
+                    document.getElementById("form").reset();
+                    editRowNumber = null;
+
+                    submitBtn.innerHTML = "Submit";
+                    submitBtn.classList.remove("btn-success");
+                    submitBtn.classList.add("btn-primary");
+                } else {
+                    alert("Something went wrong!");
+                }
+            })
+            .catch(() => {
+                alert("Something went wrong!");
+            })
+            .finally(() => {
+                // Restore original button
+                submitBtn.innerHTML = originalBtnContent;
+                submitBtn.disabled = false;
+                loadData();
+            });
+    });
+
+    // On page load
+    document.addEventListener("DOMContentLoaded", loadData);
+
+
+
+    $(document).ready(function () {
+        $("#myInput").on("keyup", function () {
+            var value = $(this).val().toLowerCase();
+            $("#myTable tr").filter(function () {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+            });
+        });
+    });
+
+
+</script>
+
+
+</html>
